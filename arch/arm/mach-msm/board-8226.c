@@ -70,6 +70,10 @@
 #include <mach/msm8x26-thermistor.h>
 #endif
 
+#ifdef CONFIG_KEXEC_HARDBOOT
+#include <linux/memblock.h>
+#endif
+
 static struct memtype_reserve msm8226_reserve_table[] __initdata = {
 	[MEMTYPE_SMI] = {
 	},
@@ -134,11 +138,21 @@ static void __init msm8226_early_memory(void)
 
 static void __init msm8226_reserve(void)
 {
+#ifdef CONFIG_KEXEC_HARDBOOT
+	int ret;
+#endif
 	reserve_info = &msm8226_reserve_info;
 	of_scan_flat_dt(dt_scan_for_memory_reserve, msm8226_reserve_table);
 	msm_reserve();
 #ifdef CONFIG_ANDROID_PERSISTENT_RAM
 	persistent_ram_early_init(&per_ram);
+#endif
+#ifdef CONFIG_KEXEC_HARDBOOT
+	ret = memblock_remove(KEXEC_HB_PAGE_ADDR, SZ_1M);
+	if(!ret)
+		pr_info("Hardboot page reserved at 0x%lu\n", KEXEC_HB_PAGE_ADDR);
+	else
+		pr_err("Failed to reserve space for hardboot page at 0x%lu!\n", KEXEC_HB_PAGE_ADDR);
 #endif
 }
 
